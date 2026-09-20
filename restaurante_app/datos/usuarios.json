@@ -1,7 +1,17 @@
 [
     {
         "identificacion": "5",
+        "nombre": "Emy Flores",
+        "correo": "emy@uea.edu.ec"
+    },
+    {
+        "identificacion": "1234",
         "nombre": "Walter Flores",
         "correo": "walter@uea.edu.ec"
+    },
+    {
+        "identificacion": "5678",
+        "nombre": "Ivan Flores",
+        "correo": "ivan@uea.edu.ec"
     }
 ]

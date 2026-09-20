@@ -1,125 +1,156 @@
 import json
-import os
-from typing import Callable, TypeVar
+from pathlib import Path
+from typing import List
 
 from modelos.producto import Producto
 from modelos.usuario import Usuario
 from modelos.venta import Venta
 
-T = TypeVar("T")
-
-RUTA_PRODUCTOS = os.path.join("datos", "productos.json")
-RUTA_USUARIOS = os.path.join("datos", "usuarios.json")
-RUTA_VENTAS = os.path.join("datos", "ventas.json")
-
 
 class ArchivoServicio:
+    def __init__(self, ruta_datos: str = "datos") -> None:
+        ruta_datos_path = Path(ruta_datos)
+        self._ruta_productos = ruta_datos_path / "productos.json"
+        self._ruta_usuarios = ruta_datos_path / "usuarios.json"
+        self._ruta_ventas = ruta_datos_path / "ventas.json"
 
-    @staticmethod
-    def _asegurar_carpeta(ruta_archivo: str) -> None:
-        carpeta = os.path.dirname(ruta_archivo)
-        if carpeta and not os.path.exists(carpeta):
-            os.makedirs(carpeta, exist_ok=True)
-
-    @staticmethod
-    def _cargar_lista_generica(
-        ruta_archivo: str,
-        constructor: Callable[[dict], T],
-        nombre_coleccion: str,
-    ) -> list[T]:
-
-        objetos: list[T] = []
+    # ---------- Productos (logica original del alumno) ----------
+    def cargar_productos(self) -> List[Producto]:
         try:
-            with open(ruta_archivo, "r", encoding="utf-8") as archivo:
-                registros = json.load(archivo)
+            with open(self._ruta_productos, "r", encoding="utf-8") as archivo:
+                datos = json.load(archivo)
         except FileNotFoundError:
-            print(
-                f"Aviso: no se encontró '{ruta_archivo}'. "
-                f"Se iniciará la colección de {nombre_coleccion} vacía."
-            )
-            return objetos
+            return []
         except json.JSONDecodeError:
-            print(
-                f"Aviso: '{ruta_archivo}' contiene JSON inválido. "
-                f"Se iniciará la colección de {nombre_coleccion} vacía."
-            )
-            return objetos
+            print("El archivo de productos no tiene un formato JSON valido.")
+            return []
         except PermissionError:
-            print(
-                f"Error: no hay permisos de lectura sobre '{ruta_archivo}'. "
-                f"Se iniciará la colección de {nombre_coleccion} vacía."
-            )
-            return objetos
+            print("No hay permisos suficientes para leer el archivo de productos.")
+            return []
 
-        for registro in registros:
+        if not isinstance(datos, list):
+            print("El archivo de productos debe contener una lista de registros.")
+            return []
+
+        productos: List[Producto] = []
+        for item in datos:
+            if not isinstance(item, dict):
+                print("Se encontro un registro de producto con formato invalido y fue omitido.")
+                continue
             try:
-                objetos.append(constructor(registro))
-            except KeyError as error:
-                print(
-                    f"Aviso: se omitió un registro de {nombre_coleccion} "
-                    f"por falta de datos ({error})."
+                producto = Producto(
+                    codigo=item["codigo"],
+                    nombre=item["nombre"],
+                    categoria=item["categoria"],
+                    precio=item["precio"],
+                    stock=item.get("stock", 0),
                 )
+                productos.append(producto)
+            except KeyError:
+                print("Se encontro un registro de producto incompleto y fue omitido.")
             except ValueError as error:
-                print(
-                    f"Aviso: se omitió un registro de {nombre_coleccion} "
-                    f"por datos inválidos ({error})."
-                )
-        return objetos
+                print(f"Se encontro un producto con datos invalidos: {error}")
+        return productos
 
-    @staticmethod
-    def _guardar_lista_generica(
-        ruta_archivo: str,
-        objetos: list,
-        nombre_coleccion: str,
-    ) -> bool:
-
+    def guardar_productos(self, productos: List[Producto]) -> bool:
+        datos = [producto.convertir_a_diccionario() for producto in productos]
         try:
-            ArchivoServicio._asegurar_carpeta(ruta_archivo)
-            datos = [objeto.convertir_a_diccionario() for objeto in objetos]
-            with open(ruta_archivo, "w", encoding="utf-8") as archivo:
+            self._ruta_productos.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._ruta_productos, "w", encoding="utf-8") as archivo:
                 json.dump(datos, archivo, indent=4, ensure_ascii=False)
             return True
         except PermissionError:
-            print(
-                f"Error: no hay permisos de escritura sobre '{ruta_archivo}'. "
-                f"No se pudo guardar la colección de {nombre_coleccion}."
-            )
+            print("No hay permisos suficientes para guardar el archivo de productos.")
             return False
 
-    @staticmethod
-    def cargar_productos(ruta_archivo: str = RUTA_PRODUCTOS) -> list[Producto]:
-        return ArchivoServicio._cargar_lista_generica(
-            ruta_archivo, Producto.crear_desde_diccionario, "productos"
-        )
+    def cargar_usuarios(self) -> List[Usuario]:
+        try:
+            with open(self._ruta_usuarios, "r", encoding="utf-8") as archivo:
+                datos = json.load(archivo)
+        except FileNotFoundError:
+            return []
+        except json.JSONDecodeError:
+            print("El archivo de usuarios no tiene un formato JSON valido.")
+            return []
+        except PermissionError:
+            print("No hay permisos suficientes para leer el archivo de usuarios.")
+            return []
 
-    @staticmethod
-    def guardar_productos(
-        productos: list[Producto], ruta_archivo: str = RUTA_PRODUCTOS
-    ) -> bool:
-        return ArchivoServicio._guardar_lista_generica(
-            ruta_archivo, productos, "productos"
-        )
+        if not isinstance(datos, list):
+            print("El archivo de usuarios debe contener una lista de registros.")
+            return []
 
-    @staticmethod
-    def cargar_usuarios(ruta_archivo: str = RUTA_USUARIOS) -> list[Usuario]:
-        return ArchivoServicio._cargar_lista_generica(
-            ruta_archivo, Usuario.crear_desde_diccionario, "usuarios"
-        )
+        usuarios: List[Usuario] = []
+        for item in datos:
+            if not isinstance(item, dict):
+                print("Se encontro un registro de usuario con formato invalido y fue omitido.")
+                continue
+            try:
+                usuario = Usuario(
+                    identificacion=item["identificacion"],
+                    nombre=item["nombre"],
+                    correo=item["correo"],
+                )
+                usuarios.append(usuario)
+            except KeyError:
+                print("Se encontro un registro de usuario incompleto y fue omitido.")
+            except ValueError as error:
+                print(f"Se encontro un usuario con datos invalidos: {error}")
+        return usuarios
 
-    @staticmethod
-    def guardar_usuarios(
-        usuarios: list[Usuario], ruta_archivo: str = RUTA_USUARIOS
-    ) -> bool:
-        return ArchivoServicio._guardar_lista_generica(
-            ruta_archivo, usuarios, "usuarios"
-        )
+    def guardar_usuarios(self, usuarios: List[Usuario]) -> bool:
+        datos = [usuario.convertir_a_diccionario() for usuario in usuarios]
+        try:
+            self._ruta_usuarios.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._ruta_usuarios, "w", encoding="utf-8") as archivo:
+                json.dump(datos, archivo, indent=4, ensure_ascii=False)
+            return True
+        except PermissionError:
+            print("No hay permisos suficientes para guardar el archivo de usuarios.")
+            return False
 
-    @staticmethod
-    def cargar_ventas(ruta_archivo: str = RUTA_VENTAS) -> list[Venta]:
-        return ArchivoServicio._cargar_lista_generica(
-            ruta_archivo, Venta.crear_desde_diccionario, "ventas"
-        )
+    def cargar_ventas(self) -> List[Venta]:
+        try:
+            with open(self._ruta_ventas, "r", encoding="utf-8") as archivo:
+                datos = json.load(archivo)
+        except FileNotFoundError:
+            return []
+        except json.JSONDecodeError:
+            print("El archivo de ventas no tiene un formato JSON valido.")
+            return []
+        except PermissionError:
+            print("No hay permisos suficientes para leer el archivo de ventas.")
+            return []
 
-    @staticmethod
-    def guardar_ventas(ventas: list[Venta], ruta_archivo: str = RUTA_VENTAS) -> bool:
-        return ArchivoServicio._guardar_lista_generica(ruta_archivo, ventas, "ventas")
+        if not isinstance(datos, list):
+            print("El archivo de ventas debe contener una lista de registros.")
+            return []
+
+        ventas: List[Venta] = []
+        for item in datos:
+            if not isinstance(item, dict):
+                print("Se encontro un registro de venta con formato invalido y fue omitido.")
+                continue
+            try:
+                venta = Venta(
+                    usuario_id=item["usuario_id"],
+                    producto_codigo=item["producto_codigo"],
+                    cantidad=item["cantidad"],
+                )
+                ventas.append(venta)
+            except KeyError:
+                print("Se encontro un registro de venta incompleto y fue omitido.")
+            except ValueError as error:
+                print(f"Se encontro una venta con datos invalidos: {error}")
+        return ventas
+
+    def guardar_ventas(self, ventas: List[Venta]) -> bool:
+        datos = [venta.convertir_a_diccionario() for venta in ventas]
+        try:
+            self._ruta_ventas.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._ruta_ventas, "w", encoding="utf-8") as archivo:
+                json.dump(datos, archivo, indent=4, ensure_ascii=False)
+            return True
+        except PermissionError:
+            print("No hay permisos suficientes para guardar el archivo de ventas.")
+            return False

@@ -1,12 +1,5 @@
-
 class Usuario:
-
-    def __init__(
-        self,
-        identificacion: str,
-        nombre: str,
-        correo: str = "",
-    ) -> None:
+    def __init__(self, identificacion: str, nombre: str, correo: str) -> None:
         self.identificacion = identificacion
         self.nombre = nombre
         self.correo = correo
@@ -17,8 +10,8 @@ class Usuario:
 
     @identificacion.setter
     def identificacion(self, valor: str) -> None:
-        if not isinstance(valor, str) or not valor.strip():
-            raise ValueError("La identificación del usuario no puede estar vacía.")
+        if not valor or not valor.strip():
+            raise ValueError("La identificación no puede estar vacía.")
         self._identificacion = valor.strip()
 
     @property
@@ -27,8 +20,8 @@ class Usuario:
 
     @nombre.setter
     def nombre(self, valor: str) -> None:
-        if not isinstance(valor, str) or not valor.strip():
-            raise ValueError("El nombre del usuario no puede estar vacío.")
+        if not valor or not valor.strip():
+            raise ValueError("El nombre no puede estar vacío.")
         self._nombre = valor.strip()
 
     @property
@@ -37,39 +30,19 @@ class Usuario:
 
     @correo.setter
     def correo(self, valor: str) -> None:
-        valor = (valor or "").strip()
-        if valor and "@" not in valor:
-            raise ValueError("El correo del usuario no tiene un formato válido.")
-        self._correo = valor
+        if not valor or not valor.strip():
+            raise ValueError("El correo no puede estar vacío.")
+        if "@" not in valor:
+            raise ValueError("El correo debe tener un formato válido (debe contener '@').")
+        self._correo = valor.strip()
 
     def convertir_a_diccionario(self) -> dict:
 
         return {
-            "identificacion": self._identificacion,
-            "nombre": self._nombre,
-            "correo": self._correo,
+            "identificacion": self.identificacion,
+            "nombre": self.nombre,
+            "correo": self.correo,
         }
 
-    @classmethod
-    def crear_desde_diccionario(cls, datos: dict) -> "Usuario":
-
-        try:
-            return cls(
-                identificacion=datos["identificacion"],
-                nombre=datos["nombre"],
-                correo=datos.get("correo", ""),
-            )
-        except KeyError as error:
-            raise KeyError(
-                f"El registro de usuario no contiene la clave esperada: {error}"
-            ) from error
-
     def __str__(self) -> str:
-        correo = f" ({self._correo})" if self._correo else ""
-        return f"[{self._identificacion}] {self._nombre}{correo}"
-
-    def __repr__(self) -> str:
-        return (
-            f"Usuario(identificacion={self._identificacion!r}, "
-            f"nombre={self._nombre!r}, correo={self._correo!r})"
-        )
+        return f"Identificación: {self.identificacion} | Nombre: {self.nombre} | Correo: {self.correo}"
